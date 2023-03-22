@@ -3,7 +3,8 @@
 #### Project Guided by DataCamp
 
 *Dataset*
-listed in this Repo as `cardioActivities.csv`
+
+listed in this **Repo** as `cardioActivities.csv`
 
 ### Steps Taken in this Analysis
 
