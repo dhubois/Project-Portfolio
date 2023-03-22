@@ -15,5 +15,5 @@ listed in this **Repo** as `cardioActivities.csv`
 5. Visualizations of Statistics
 6. Did I Reach My Goals?
 7. Have I Progressed?
-8. Intesnistiy Training Visualization
+8. Training Instensity Visualization
 9. Detailed Summary Report
