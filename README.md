@@ -52,3 +52,10 @@ Visit my [DataCamp](https://www.datacamp.com/profile/palexanderdubois) profile f
 | --- | --- |
 | `Dr. Semmelweis and the discovery of Handwashing` | Reanalyse the data behind one of the most important discoveries of modern medicine: Handwashing. |
 | `Visualizing COVID-19` | Visualize the rise of COVID-19 cases globally with ggplot2. Manipulate data frames using dplyr and make plots using ggplot2. |
+
+---
+
+### **SQL**
+| Project | Description |
+| --- | --- |
+| `Loading...` | Uploading Projects completed through Google Data Analytics Certificate with SQL... Soon! |
