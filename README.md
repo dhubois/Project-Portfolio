@@ -42,17 +42,19 @@ Visit my [DataCamp](https://www.datacamp.com/profile/palexanderdubois) profile f
 ### **Python**
 | Project | Description |
 | --- | --- |
-| `Analyze Your Runkeeper Fitness Data` | Import, clean, and analyze seven years worth of training data tracked on the Runkeeper app. |
-| `Dr. Semmelweis and the discovery of Handwashing` | Reanalyse the data behind one of the most important discoveries of modern medicine: Handwashing. |
+| [`Analyze Your Runkeeper Fitness Data`](https://github.com/dhubois/Data-Portfolio/tree/main/Python/Analyzing%20Runkeep%20Data) | Import, clean, and analyze seven years worth of training data tracked on the Runkeeper app. |
+| [`Dr. Semmelweis and the discovery of Handwashing`](https://github.com/dhubois/Data-Portfolio/tree/main/Python/Dr.%20Semmelweis%20and%20the%20Discovery%20of%20Handwashing) | Reanalyse the data behind one of the most important discoveries of modern medicine: Handwashing. |
+|[`Seaborn Practice`](https://github.com/dhubois/Data-Portfolio/tree/main/Python/Seaborn%20Fun%20Practice)| Created multiple plots using different datasets available through Python's Environment |
 
 ---
 
 ### **R**
 | Project | Description |
 | --- | --- |
-| `Dr. Semmelweis and the discovery of Handwashing` | Reanalyse the data behind one of the most important discoveries of modern medicine: Handwashing. |
-| `Visualizing COVID-19` | Visualize the rise of COVID-19 cases globally with ggplot2. Manipulate data frames using dplyr and make plots using ggplot2. |
-| `Google Capstone Project` | As a junior analyst in the marketing team, I was tasked to find insights that can explain to us how consumers are using their smart devices by analyzing user’s smart device fitness data. |
+| [`Dr. Semmelweis and the discovery of Handwashing`](https://github.com/dhubois/Data-Portfolio/tree/main/R/Dr.%20Semmelweis%20and%20the%20Discovery%20of%20Handwashing) | Reanalyse the data behind one of the most important discoveries of modern medicine: Handwashing. |
+| [`Google Capstone Project`](https://github.com/dhubois/Data-Portfolio/tree/main/R/Google%20Capstone%20Project) | As a junior analyst in the marketing team, I was tasked to find insights that can explain to us how consumers are using their smart devices by analyzing user’s smart device fitness data. |
+| [`Visualizing COVID-19`](https://github.com/dhubois/Data-Portfolio/tree/main/R/Visualizing%20COVID-19) | Visualize the rise of COVID-19 cases globally with ggplot2. Manipulate data frames using dplyr and make plots using ggplot2. |
+
 
 ---
 
