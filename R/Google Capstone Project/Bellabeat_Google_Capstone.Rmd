@@ -1,0 +1,290 @@
+---
+title: "Bellabeat Analysis - Capstone Project"
+author: "Paul Dubois"
+output: html_notebook
+---
+
+## ASK
+
+### Deliverables
+* A clear summary of the business task
+* a description of all data sources used
+* documentation of any cleaning or manipulation off data
+* a summary of your analysis
+* supporting visualizations and key findings
+* your top high-level content recommendations based on your analysis
+
+### Business Task
+
+As a junior analyst in the marketing team, I was tasked to find insights that can explain to us how consumers are using their smart devices by analyzing user’s smart device fitness data. Then apply these insights to a Bellabeat smart device products.
+
+
+```{r, warning = FALSE}
+#Load our packages into RStudio
+library(tidyverse)
+library(lubridate)
+library(janitor)
+```
+
+```{r}
+#working directory
+getwd()
+```
+
+
+```{r Import .csv datasets}
+#read in data 
+daily_activity <- read.csv("../CAPSTONE PROJECT/Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv")
+hourly_calories <- read.csv("../CAPSTONE PROJECT/Fitabase Data 4.12.16-5.12.16/hourlyCalories_merged.csv")
+hourly_steps <- read.csv("../CAPSTONE PROJECT/Fitabase Data 4.12.16-5.12.16/hourlySteps_merged.csv")
+sleep <- read.csv("../CAPSTONE PROJECT/Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv")
+heartrate <- read.csv("../CAPSTONE PROJECT/Fitabase Data 4.12.16-5.12.16/heartrate_seconds_merged.csv")
+```
+
+
+```{r Check daily_activity data}
+glimpse(daily_activity)
+cat("Number of participants:",n_distinct(daily_activity$Id)) #confirming number of participants is 33
+cat("\nNumber of days recorded:", n_distinct(daily_activity$ActivityDate)) #checking the number of dates in the data
+```
+
+```{r Check daily_calories data}
+glimpse(hourly_calories)
+cat("Number of participants: ", n_distinct(hourly_calories$Id))
+```
+
+```{r Check daily_steps data}
+glimpse(hourly_steps)
+cat("Number of participants: ", n_distinct(hourly_steps$Id))
+```
+
+```{r Check sleep data}
+glimpse(sleep)
+cat("Number of participants: ", n_distinct(sleep$Id))
+cat("\nNumber of days recorded: ", n_distinct(sleep$SleepDay))
+```
+
+```{r Check heartrate data}
+glimpse(heartrate)
+cat("Number of participants: ", n_distinct(heartrate$Id))
+```
+
+> Data is organized to be in long format, in which each row is one data point per subject, so each subject will have data in multiple rows. Verified data integrity by checking the distinct number of `Id` and `ActivityDate` for each dataset and confirmed they are the same 33 participants and 31 days of data. Next we check for data integrity within `ActivityDate` are all dates in the same format? Answer is yes, although `sleep` has a `12:00:00 am` added to end, we clean it to only include the month, day, year using `lubridate()`. However, to keep all date formats consistent, we clean the date column for all datasets. This will keep data integrity throughout all data sets used. Lastly, `heartrate` dataset has too little sample, so we will not use it.
+
+
+## Data Processing
+
+```{r}
+cleaned_daily_activity <- clean_names(daily_activity) %>%  #DAILY ACTIVITY
+  rename(date = activity_date) %>% 
+  remove_empty(which = c("rows")) %>% 
+  remove_empty(which = c("cols"))
+
+cleaned_daily_activity$date <- as_date(cleaned_daily_activity$date, format = "%m/%d/%Y") 
+
+cleaned_sleep <- clean_names(sleep) %>% #DAILY SLEEP
+  rename(date = sleep_day) %>% 
+  remove_empty(which = c("rows")) %>% 
+  remove_empty(which = c("cols"))
+
+cleaned_sleep$date <- as_date(cleaned_sleep$date, format = "%m/%d/%Y")
+
+cleaned_hourly_steps <- clean_names(hourly_steps) %>% # HOURLY STEPS
+  remove_empty(which = c("rows")) %>% 
+  remove_empty(which = c("cols")) 
+
+cleaned_hourly_calories <- clean_names(hourly_calories) %>% #HOURLY CALORIES
+  remove_empty(which = c("rows")) %>% 
+  remove_empty(which = c("cols"))
+```
+
+
+> All datasets are presumed cleaned and verified for data integrity. Next we take a `glimpse()` at each dataset to confirm our data cleaning
+
+
+```{r Check on cleaned_daily_activity}
+glimpse(cleaned_daily_activity)
+```
+
+```{r Check on cleaned_calories}
+glimpse(cleaned_hourly_calories)
+```
+
+```{r Check on cleaned_steps}
+glimpse(cleaned_hourly_steps)
+```
+
+```{r Check on cleaned_sleep}
+glimpse(cleaned_sleep)
+```
+
+
+## Analysis & Data Visualization
+
+* Is there a relationship between variables in the daily_activity dataset?
+
+```{r What is the relationship between total steps taken daily and sedentary time (time sitting down)}
+ggplot(data = cleaned_daily_activity) + 
+  geom_point(mapping = aes(x = sedentary_minutes, y = total_steps, alpha = 0.8)) +
+  labs(title = "Total Sedentary Time and Steps Counted Daily")
+```
+
+> Using `ggplot` to create a data viz that shows the relationship between total steps in the day and sedentary minutes. Observing this, we find that your daily activity is not closely related to the total steps taken in a day. There are two visual clusters in our scatter plot, they are both visualize the same number of steps although one cluster has more sedentary time. So we consider that not all steps are considered active.
+
+
+#### Trying hourly count instead of daily
+* We plot hourly steps and hourly calories with the potential bias of different rates of calorie burn depending on the person.
+
+```{r Merge hourly_steps and hourly_calories by "id" AND "activity_hour" to plot with ggplot()}
+combined_hourly_steps_calories <- merge(cleaned_hourly_calories, cleaned_hourly_steps, by = c("id","activity_hour"))
+
+glimpse(combined_hourly_steps_calories)
+
+combined_hourly_steps_calories %>% 
+  group_by(id) %>% 
+  summarize(count_records=n()) %>% 
+  arrange(count_records)
+```
+
+
+> Merging these datasets together makes it much easier to plot with ggplot, as well as we can now count each id's contributions. Specifically, the number of rows associated with each `id`, we have a minimum of 88 and a max of 736. Considering our dataset and desired scatter plots, 88 records should be enough to create an insightful graph.
+
+
+```{r Plotting combined_hourly_steps_calories using facet_wrap to show graph of each user}
+ggplot(data = combined_hourly_steps_calories, mapping = aes(x = calories, y = step_total)) +
+  geom_jitter(mapping = aes(x = calories, y = step_total)) + 
+  facet_wrap(~id) + geom_smooth(formula = y ~ x, method = 'lm') + 
+  labs(title= "Hourly Calorie Burn and Hourly Step Count for Each User")
+```
+
+```{r Calculating correlation for previous graphs, which represent the relationship between step_total and calories burned}
+cor(combined_hourly_steps_calories$calories, combined_hourly_steps_calories$step_total)
+```
+
+> There exists a 81% positive correlation, visualized in our plot it is explained by the more steps a user takes in an hour, the more calories they will burn. We can also assume the more steps a user take in an hour, intensity level will likely be higher as well. 
+
+
+* Does the day of the week affect our activity levels or sleep?
+
+```{r}
+combined_sleep_daily_activity <- mutate(combined_sleep_daily_activity, day = wday(date, label = T))
+
+glimpse(combined_sleep_daily_activity)
+```
+
+
+
+```{r Organize new data frame to be arranged by day, organized with specific attributes and means of attributes}
+#organize and aggregate data by day of weel to summarize averages
+
+sum_sleep_daily_activity <- combined_sleep_daily_activity %>% 
+  group_by(day) %>% 
+  summarize(average_daily_steps = mean(total_steps), 
+            average_asleep_minutes = mean(total_minutes_asleep), 
+            average_time_awake_in_bed = mean(time_awake_in_bed), 
+            average_sedentary_minutes = mean(sedentary_minutes), 
+            avg_light_activity_min = mean(lightly_active_minutes), 
+            avg_fairly_active_min = mean(fairly_active_minutes), 
+            avg_very_active_min = mean(very_active_minutes), 
+            average_calories = mean(calories))
+
+glimpse(sum_sleep_daily_activity)
+```
+Similarly, we merge two datasets, in this merge we will also add a new variable "time awake in bed" to see if it related with anything, or if the participant just stays in bed a little longer.
+
+```{r Merging sleep dataset and daily_activity dataset}
+combined_sleep_daily_activity <- merge(cleaned_daily_activity, cleaned_sleep, by = c("id","date"))
+
+combined_sleep_daily_activity <- mutate(combined_sleep_daily_activity, time_awake_in_bed = total_time_in_bed - total_minutes_asleep) #adding a new variable to show the time spent in bed while *awake*
+
+n_distinct(combined_sleep_daily_activity$id) #daily_activity merged into sleep, which means there is data for 24 users instead of 33
+
+glimpse(combined_sleep_daily_activity)
+```
+
+```{r Plot showing avg_daily_steps per day of the week}
+ggplot(data = sum_sleep_daily_activity, mapping=aes(x=day, y=average_daily_steps)) +
+  geom_col(fill="blue") + labs(title="Daily Average for Step Count") 
+```
+
+
+```{r Plot showing average time asleep per day of week}
+ggplot(data = sum_sleep_daily_activity, mapping=aes(x=day, y=average_asleep_minutes)) +
+  geom_col(fill="sky blue") + labs(title="Average Minutes Asleep per Day of the Week")
+```
+
+
+```{r Plot average minutes awake in bed per day of the week}
+ggplot(data = sum_sleep_daily_activity, mapping=aes(x=day, y=average_time_awake_in_bed)) +
+  geom_col(fill="dark blue") + labs(title="Average Minutes Awake in Bed per Day of the Week")
+```
+
+```{r Plot average sedentary minutes per day of the week}
+ggplot(data = sum_sleep_daily_activity, mapping=aes(x=day, y=average_sedentary_minutes)) +
+  geom_col(fill="cornflowerblue") + labs(title="Average Sedentary Minutes per Day of the Week")
+```
+```{r}
+ggplot(data=sum_sleep_daily_activity,mapping=aes(x=day)) +
+  geom_line(mapping=aes(y=avg_light_activity_min, group=1)) + geom_point(aes(y=avg_light_activity_min)) +
+  labs(title="Light Activity Minutes per Day of the Week")
+```
+
+```{r}
+ggplot(data=sum_sleep_daily_activity,mapping=aes(x=day)) +
+  geom_line(mapping=aes(y=avg_fairly_active_min, group=1)) + geom_point(aes(y=avg_fairly_active_min)) +
+  labs(title="Fairly Active Minutes per Day of the Week")
+```
+
+```{r}
+ggplot(data=sum_sleep_daily_activity,mapping=aes(x=day)) +
+  geom_line(mapping=aes(y=avg_very_active_min, group=1)) + geom_point(aes(y=avg_very_active_min)) +
+  labs(title="Very Active Minutes per Day of the Week")
+```
+```{r}
+ggplot(data=sum_sleep_daily_activity,mapping=aes(x=day)) +
+  geom_line(mapping=aes(y=average_sedentary_minutes, group=1)) + geom_point(aes(y=average_sedentary_minutes)) +
+  labs(title="Sedentary Minutes per Day of the Week")
+```
+
+```{r Plot of activity time over a week}
+ggplot(data=sum_sleep_daily_activity,mapping=aes(x=day)) +
+  geom_col(mapping=aes(y=average_sedentary_minutes, group=1, fill='Sedentary Minutes')) +
+  geom_col(mapping=aes(y=avg_light_activity_min, group=1, fill='Light Activity')) +
+  geom_col(mapping=aes(y=avg_very_active_min, group=1, fill='Very Active')) +
+  geom_col(mapping=aes(y=avg_fairly_active_min, group=1, fill='Fairly Active')) +
+  labs(x='Day',y='Minutes',title='Activity Time over a Week')
+
+```
+
+> Observing the `Activity Time over a Week` plot, we can observe that users stay most active on Saturdays, and most likey to not do anything on Sundays. There is a peak sedentary minutes on Friday, potentially due to the end of the work week and users would rather relax instead of exercise. Lastly, Mondays and Tuesdays are when people feel most energetic to have some active minutes, as light, fair, and very active minutes all have an increase here. 
+
+```{r Plot of total minutes asleep and sedentary minutes}
+ggplot(data=combined_sleep_daily_activity, mapping=aes(x=sedentary_minutes, y=total_minutes_asleep)) +
+  geom_point() + 
+  geom_smooth(formula = y ~ x, method='lm') + 
+  labs(title= "Total Minutes Asleep and Sedentary Minutes") 
+```
+
+```{r Is there a correlation between sedentary minutes and total minutes asleep?}
+cor(combined_sleep_daily_activity$total_minutes_asleep,combined_sleep_daily_activity$sedentary_minutes)
+```
+
+> A relationship between the amount of sedentary minutes and total minutes asleep exists, a negative correlation of -0.60 explains the less active a user is, the less time asleep a user will get. We can further assume that the less energy consumed through excerise means we won't be as tired to go to sleep.
+
+
+## Act
+
+__Insights Gained__
+
+* Users consistently have more sedentary minutes than activity every day
+* Users spend more time doing 
+* Taking all intensity levels into account, most active days of the week are Monday, Tuesday and Saturday.
+* More insights about how active a user is are gained through hourly step count compared to daily step count.
+* We learned that Friday is the day with the most sedentary minutes, could be explained by the fact that it's the end of the work week and users would rather stay home and relax instead of being active.
+* Users are more likely to sleep and stay awake in bed more minutes on Sundays than any other day of the week.
+* On a daily average, users spend twice as long being sedentary rather than lightly active and thirty times as long being sedentary rather than fairly/very active.
+
+__Moving forward__
+* With the goal to have users be more active no matter the intensity, encourage users to take more steps per hour with a possible goal for a step counter or just notify user to stand and take a small walk.
+* Let users set activity goals so the metrics measured like heartrate, activity, intensity, steps, and distance is comparable to themselves, it would be biased to compare one's daily metrics to another's and try to gain insights from it.
+
