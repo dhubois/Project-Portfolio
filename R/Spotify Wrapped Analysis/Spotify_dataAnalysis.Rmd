@@ -1,0 +1,192 @@
+---
+title: "DMTM Final Project - Data Analysis on Personal Spotify Data with R"
+author: "Paul Dubois - pdubois6743@floridapoly.edu"
+output: html_notebook
+---
+
+### Read in necessary packages
+
+```{r Read in necessary packages}
+library(readr)
+library(DBI)
+library(viridis)
+library(lubridate)
+library(tidyverse)
+library(ggplot2)
+library(spotifyr)
+library(plotly)
+library(knitr)
+library("gghighlight")
+library(jsonlite)
+```
+
+
+```{r}
+PADstream00 <- fromJSON("StreamingHistory0.json", flatten = TRUE)
+PADstream01 <- fromJSON("StreamingHistory1.json", flatten = TRUE)
+PADstream02 <- fromJSON("StreamingHistory2.json", flatten = TRUE)
+
+PAD_spotify <- rbind(PADstream00, PADstream01, PADstream02) #combining three JSON files to have only one dataset
+
+PAD_spotify_2022 <- PAD_spotify %>% #formatting date using lubridate, and adding a date attribute as well as minutes and seconds
+  as_tibble() %>% 
+  mutate_at("endTime", ymd_hm) %>% 
+  mutate(endTime = endTime - hours(6)) %>% 
+  mutate(date = floor_date(endTime, "day") %>% as_date, seconds = msPlayed / 1000, minutes = seconds / 60) %>% 
+  filter(date >= '2022-01-01' & date <= '2022-10-31')
+
+str(PAD_spotify_2022)
+```
+> The total data is orginially from November 5, 2021 to November 5, 2022. However for this project, I will only focus on this year’s data, so I filter the original combined dataset into a new variable PAD_spotify_2022 which holds data from January 1, 2022 to October 31, 2022.
+
+```{r}
+#Calculating the total number of minutes of playback
+totalMinutes <- sum(PAD_spotify_2022["msPlayed"])/1000/60
+cat("You listened to a total of", totalMinutes, "minutes in 2022!")
+```
+
+> Calculating my total minutes listened was very simple.
+
+```{r, warning = FALSE}
+#Manually predicting 4 artists I think I've most listened to this year
+artist_hours <- PAD_spotify_2022 %>% 
+  group_by(artistName, date = floor_date(date, "month")) %>% 
+  summarize(hours = sum(minutes)/60) 
+
+
+ggplot(data = artist_hours) +
+  geom_line(aes(x= date, y= hours, group = artistName, color = artistName)) +
+  gghighlight(artistName == "Mac DeMarco" ||
+              artistName == "Kanye West" ||
+              artistName == "Bad Bunny" || 
+              artistName == "Baby Keem") +
+  scale_x_date(date_labels = "%b %Y", date_breaks = "2 month") +
+  scale_color_manual(values = c("darkorange2", "blue", "red", "forest green")) +
+  labs(title = "Playback hours per artist", subtitle = "Baby Keem vs. Kanye West") +
+  xlab("") +
+  theme_light()
+```
+> For most of the ggplots, new transformations were needed to be made to the original `PAD_spotify_2022`. In this ggplot I am plotting all artists listened to, then visualizing and highlighting those with the highest spikes in hours listened.
+
+```{r, warning = FALSE}
+#top 5 most listened to artists
+PAD_most_listened <- PAD_spotify_2022 %>% 
+  group_by(artistName) %>% 
+  mutate(artistName = iconv(artistName, to = "UTF-8")) %>% 
+  summarize(listenedHours = sum(minutes)/60) %>% 
+  arrange(desc(listenedHours)) %>% 
+  slice(1:5)
+
+PAD_most_listened
+```
+
+> A tibble representation of my top 5 artists categorized by the total number of hours I listened to them.
+
+```{r, warning = FALSE}
+ggplot(data = PAD_most_listened) +
+  geom_segment(aes(x= artistName, xend= artistName, y= 0, yend = listenedHours)) +
+  scale_color_viridis(discrete = TRUE, guide = FALSE, option="C") +
+  theme_light(base_size=12, base_family="HiraKakuProN-W3") +
+  theme (
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+  geom_point(mapping=aes(x = artistName, y = listenedHours,color = artistName, color = "cyan3")) +
+    axis.ticks.x = element_blank(),
+  ) +
+  labs(title = "Top 5 most listened artists") +
+  xlab("") +
+  ylab("Total Hours Listened") +
+  coord_flip()
+```
+> A visualization representation of my top 5 artists categorized by the total number of hours I listened to them.
+
+```{r, warning = FALSE}
+#top 5 most listented to songs
+PAD_top_songs <- PAD_spotify_2022 %>% 
+  group_by(trackName) %>% 
+  summarize(minutes= sum(minutes)) %>% 
+  arrange(desc(minutes)) %>% 
+  slice(1:5)
+
+PAD_top_songs
+```
+
+> A tibble representation of my top 5 artists categorized by the total number of hours I listened to them.
+
+```{r, warning = FALSE}
+ggplot(data = PAD_top_songs) +
+  geom_segment(aes(x= trackName, xend= trackName, y= 0, yend= minutes)) +
+  geom_point(mapping=aes(x= trackName, y= minutes, color= trackName)) +
+  scale_color_viridis(discrete = TRUE, guide = FALSE, option="D") +
+  theme_light(base_size=12, base_family="HiraKakuProN-W3") +
+  theme (
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.x = element_blank(),
+  ) +
+  labs(title = "Top 5 listened songs") +
+  xlab("") +
+  ylab("Total Minutes Listened") +
+  coord_flip()
+
+```
+> A visualized representation of my top 5 songs categorized by the total number of hours I listened to them.
+
+```{r}
+PAD_stream_in_hours <- PAD_spotify_2022 %>% 
+  group_by(date = floor_date(date, "week")) %>% 
+  summarize(hours = sum(minutes)/60) %>% 
+  arrange(date)
+
+PAD_stream_in_hours
+```
+> A tibble representation of my time listened categorized by the week of the year.
+
+```{r}
+ggplot(data = PAD_stream_in_hours) +
+  geom_col(mapping=aes(x = date, y = hours)) + xlab("Week") + ylab("Hours") +
+  labs(title="Playback Hours each Week", subtitle="Breaking down Total Minutes Listened into Hours per Week") 
+```
+
+> A visualized representation of my time listened categorized by the week of the year.
+
+```{r}
+PAD_dayHour <- PAD_spotify_2022 %>% 
+  group_by(date, hour = hour(endTime), weekday = wday(date, label = TRUE)) %>% 
+  summarize(hoursListened = sum(minutes)/60)
+
+PAD_weekHour <- PAD_dayHour %>% 
+  group_by(weekday, hour) %>% 
+  summarize(hours = sum(hoursListened))
+
+PAD_dayHour
+PAD_weekHour
+```
+
+```{r}
+ggplot(data = PAD_weekHour) +
+  geom_line(mapping=aes(x= hour, y= hours, color= weekday)) +
+  scale_color_viridis(discrete= TRUE, option= "H") +
+  scale_x_continuous(breaks= seq(0, 24, 2)) +
+  scale_y_continuous(breaks= seq(0, 15, 2)) +
+  scale_fill_gradient(low= "darkolivegreen1", high= "cyan4") +
+  labs(title= "Listening Behaviors", subtitle= "Paul's Weekly Activity",
+       x= "Time of Day", y= "Frequency measured by Total Hours") +
+  theme_light() 
+
+```
+
+```{r }
+PAD_dayHour %>% 
+  group_by(weekday, hour) %>% 
+  summarize(hours = sum(hoursListened)) %>% 
+  ggplot(aes(x= hour, y= weekday, fill= hours)) +
+  geom_tile() +
+  scale_x_continuous(breaks= seq(0, 24, 2)) +
+  scale_fill_gradient(low= "skyblue", high= "darkblue") +
+  labs(title= "Spotify time during the week", subtitle= "Activity from 0 to 24 hours", x= "Time of Day", y= "") +
+  theme_light()
+```
+```
+
+
