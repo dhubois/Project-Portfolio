@@ -1,6 +1,6 @@
 # Data-Portfolio
 
-This Portfolio contains a mulititude of projects, and practice notebooks. Most, if not all, projects are found on [DataCamp](https://www.datacamp.com/)! However, I have added here many notebooks of projects I've worked on throughout my Master's of Data Science and Intro to Data Science course from Harvardx. And, the practice notebooks are just helpful notebooks to help get reaccustomed to certain packages or programming rules!
+This Portfolio contains a mulititude of projects, and practice notebooks. Many projects are found on [DataCamp](https://www.datacamp.com/)! However, I have added here many notebooks of projects I've worked on throughout my Master's of Data Science, Google Certificates, and Harvad CS109x course. Also, the practice notebooks are just helpful notebooks to help get reaccustomed to certain packages or helpful programming rules!
 
 ---
 
