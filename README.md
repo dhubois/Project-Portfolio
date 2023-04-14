@@ -53,7 +53,7 @@ Visit my [DataCamp](https://www.datacamp.com/profile/palexanderdubois) profile f
 | --- | --- |
 | [`Dr. Semmelweis and the discovery of Handwashing`](https://github.com/dhubois/Data-Portfolio/tree/main/R/Dr.%20Semmelweis%20and%20the%20Discovery%20of%20Handwashing) | Reanalyse the data behind one of the most important discoveries of modern medicine: Handwashing. |
 | [`Google Capstone Project`](https://github.com/dhubois/Data-Portfolio/tree/main/R/Google%20Capstone%20Project) | As a junior analyst in the marketing team, I was tasked to find insights that can explain to us how consumers are using their smart devices by analyzing user’s smart device fitness data. |
-|['Spotify Wrapped Analysis'](https://github.com/dhubois/Data-Portfolio/tree/main/R/Spotify%20Wrapped%20Analysis)| Learning to use jsonlite, spotifyr, lubridate and plotly, analyze and visualize personal summary statistics of listening behaviors from January 2022 to October 2022. |
+|[`Spotify Wrapped Analysis`](https://github.com/dhubois/Data-Portfolio/tree/main/R/Spotify%20Wrapped%20Analysis)| Learning to use jsonlite, spotifyr, lubridate and plotly, analyze and visualize personal summary statistics of listening behaviors from January 2022 to October 2022. |
 | [`Visualizing COVID-19`](https://github.com/dhubois/Data-Portfolio/tree/main/R/Visualizing%20COVID-19) | Visualize the rise of COVID-19 cases globally with ggplot2. Manipulate data frames using dplyr and make plots using ggplot2. |
 
 
