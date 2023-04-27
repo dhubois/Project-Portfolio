@@ -1,0 +1,641 @@
+---
+title: "FARS Project"
+author: "Paul Dubois"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(scales)
+```
+
+# Function to Clean Column Names of `.xls` Files Gathered From NHTSA's FARS Online Query
+
+```{r}
+source("clean_csv.R")
+```
+
+
+## Yearly Total Crashes 
+
+```{r}
+df_crash_year <- clean_csv("FatalAccidents/Crash_per_Month_2010-2020.csv")
+```
+
+## Wrangling
+
+```{r}
+tidy_year <- df_crash_month %>% 
+  pivot_longer(cols = 3:length(df_crash_month)-1, names_to = "Month", values_to = "Fatal_Crashes") %>% 
+  clean_names()
+```
+
+* Check data
+
+```{r}
+tidy_year
+```
+
+### Making a line plot to show the trend
+
+```{r}
+tidy_year %>% 
+  group_by(year) %>% 
+  summarise(avg_crashes = mean(fatal_crashes)) %>% 
+  ggplot(aes(x = year, y = avg_crashes)) +
+  geom_line(color = "red") +
+  labs(title = "How has the Average Number of Crashes Changed in the Last Decade?",
+       subtitle = "2010 - 2020") +
+  xlab("") + ylab("Average Crashes") +
+  scale_x_discrete(limits = c(2010:2020))
+```
+
+
+## Car Manufacturer Wrangling & Visualization
+
+```{r}
+df_makes <- clean_csv("FatalAccidents/Vehicle_Make_2010-2020.csv")
+```
+
+### Tidy the data
+
+```{r}
+#Tidy Data
+df_makes %>% 
+  pivot_longer(cols = "ASTON_MARTIN":"Unknown_Make", names_to = "Make", values_to = "Fatal_Crashes")
+```
+
+```{r}
+df_makes %>% 
+  pivot_longer(cols = "ASTON_MARTIN":"Unknown_Make", names_to = "Make", values_to = "Fatal_Crashes") %>% 
+  group_by(Make) %>% 
+  summarise(total_crashes = sum(Fatal_Crashes, na.rm = T)) %>% 
+  arrange(desc(total_crashes)) %>% 
+  head(10) %>% 
+  mutate(Make = str_replace_all(Make, "\\_|\\-", " ")) %>%  # This line RENAMES to look pretty for visualizations
+  ggplot() +
+    geom_col(aes(x = fct_reorder(Make,total_crashes), y = total_crashes), fill = "darkblue") +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "bold")) +
+    xlab(label = "Car Manufacturer") + ylim(0, 90000) +
+    labs(title = "Which Manufacturer Has The Most Fatal Crashes from 2010 to 2020?", subtitle = "Sum of Total Crashes from 2010 to 2020.")
+```
+
+```{r}
+df_makes %>% 
+  group_by(Year) %>% 
+  summarise(total_crashes = sum(Total))
+```
+
+```{r}
+total_crashes_decade <- df_makes %>% 
+  group_by(Year) %>% 
+  summarise(total_crashes = sum(Total)) %>% 
+  summarise(decade_crashes = mean(total_crashes)) %>% 
+  pull
+cat("Average crashes from 2010 - 2020:", total_crashes_decade)
+```
+
+```{r}
+df_makes %>% 
+  pivot_longer(cols = "ASTON_MARTIN":"Unknown_Make", names_to = "Make", values_to = "Fatal_Crashes") %>% 
+  group_by(Make) %>% 
+  summarise(total_crashes = sum(Fatal_Crashes, na.rm = T)) %>% 
+  arrange(desc(total_crashes)) %>% 
+  head(10) %>% 
+  ggplot() +
+    geom_col(aes(x = fct_reorder(Make,total_crashes), y = total_crashes), fill = "darkblue") +
+    geom_hline(yintercept = total_crashes_decade) +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, face = "bold")) +
+    xlab(label = "") + scale_y_continuous(name="Crashes", labels = comma) +
+    labs(title = "Total Fatal Accidents Compared to the Top 10", subtitle = "Compared to the Average Number of Fatal Road Crashes")
+```
+
+## Experimenting with Word Cloud 
+
+```{r}
+library(wordcloud2)
+tidy_manufacturer <- df_makes %>% 
+  pivot_longer(cols = "ASTON_MARTIN":"Unknown_Make", names_to = "Make", values_to = "Fatal_Crashes") %>% 
+  group_by(Make) %>% 
+  summarise(total_crashes = sum(Fatal_Crashes, na.rm = T)) %>% 
+  arrange(desc(total_crashes)) %>% 
+  mutate(Make = str_replace(Make, pattern = "\\_", " "))
+```
+
+```{r}
+wordcloud2(tidy_manufacturer, size = 0.6, gridSize = 4, color = "random-dark")
+```
+
+
+```{r}
+df_makes %>% 
+  clean_names() %>% 
+  pivot_longer(cols = 3:length(df_makes)-1, names_to = "make", values_to = "fatal_crashes") %>% 
+  group_by(make) %>% 
+  summarise(total_crashes = sum(fatal_crashes, na.rm = T)) %>% 
+  arrange(desc(total_crashes)) %>% 
+  mutate(make = str_replace(make, pattern = "\\_", " ")) %>% 
+  wordcloud2(size = 1)
+```
+
+
+## First Harmful Event Wrangling & Visualization
+
+```{r}
+df_event <- clean_csv("FatalAccidents/First_Harmful_Event_2010-2020.csv")
+```
+
+### Tidy the data
+
+```{r}
+event_summary <- df_event %>% 
+  pivot_longer(cols = 3:length(df_event)-1, names_to = "Event", values_to = "Fatal_Crashes") %>% 
+  group_by(Event) %>% 
+  summarise(total_crashes = sum(Fatal_Crashes)) %>% 
+  arrange(desc(total_crashes)) %>% 
+  mutate(normalized_total = (total_crashes)/1000)
+event_summary
+```
+
+### Tidy the data
+
+```{r} 
+event_names <- df_event %>% 
+  pivot_longer(cols = 3:length(df_event)-1, names_to = "Event", values_to = "Fatal_Crashes") %>% 
+  mutate(Event = str_replace_all(Event, "\\_|\\-", " "))
+```
+
+### Experiment with Treemaps
+
+
+```{r}
+library(treemapify)
+event_names %>% 
+  group_by(Event) %>% 
+  summarise(total_crashes = sum(Fatal_Crashes)) %>% 
+  arrange(desc(total_crashes)) %>% 
+  mutate(normalized_total = (total_crashes)/1000) %>% 
+  head(12) %>% 
+  ggplot(aes(fill = Event, area = normalized_total, label = Event)) +
+    geom_treemap() +
+    geom_treemap_text(colour = "white", place = "centre") +
+    labs(title = "First Harmful Event Visual") +
+    theme(legend.position = "none")
+```
+
+### Experiment with Pie Charts
+
+```{r}
+event_names %>% 
+  group_by(Event) %>% 
+  summarise(total_crashes = sum(Fatal_Crashes)) %>% 
+  arrange(desc(total_crashes)) %>% 
+  mutate(normalized_total = (total_crashes)/1000) %>% 
+  head(10) %>%
+  ggplot(aes(x = normalized_total, y = Event, 
+             fill = Event)) +
+    geom_bar(width = 1, 
+             stat = "identity", 
+             color = "black") +
+    coord_polar("y", 
+                start = 0, 
+                direction = -1) +
+    theme_void()
+```
+
+## Atmospheric Conditions Wrangling & Visualization
+
+```{r}
+df_atmospheric_cond <- clean_csv("FatalAccidents/Atmospheric_Conditions_2010-2020.csv")
+```
+
+### Tidy data
+
+```{r}
+tidy_atmospheric_df <- df_atmospheric_cond %>% 
+  pivot_longer(cols = 3:length(df_atmospheric_cond)-1, names_to = "Atmosphere", values_to = "Fatal_Crashes") %>% 
+  mutate(Atmosphere = str_replace_all(Atmosphere, "\\_|\\-", " ")) %>% 
+  clean_names()
+sample_n(tidy_atmospheric_df,15)
+```
+
+
+### Experiment with Treemapify
+
+```{r}
+library(treemapify)
+tidy_atmospheric_df %>% 
+  group_by(atmosphere) %>% 
+  summarise(total_crashes_atmo = sum(fatal_crashes)) %>% 
+  arrange(desc(total_crashes_atmo)) %>% 
+  ggplot(aes(fill = atmosphere, area = total_crashes_atmo, label = atmosphere)) +
+    geom_treemap() +
+    geom_treemap_text(colour = "white", place = "centre") +
+    labs(title = "Atmospheric Conditions") +
+    theme(legend.position = "none")
+```
+
+
+
+```{r}
+thresh_freq <- 1020.403
+small_class <- tidy_body_class %>%
+  group_by(body_class) %>%
+  summarise(avg_crashes = mean(fatal_crashes), 
+            category = ifelse(avg_crashes > thresh_freq, body_class, "Other")) %>%
+  group_by(category) %>%
+  summarise(avg_crashes = mean(avg_crashes))
+```
+
+
+### Lollipop Plot
+
+
+```{r}
+decade_average <- 1020.403
+class_graph <-  ggplot(data = small_class) +
+  geom_segment(aes(x = fct_reorder(category, avg_crashes), xend = fct_reorder(category, avg_crashes) ,y = 0, yend = avg_crashes), color = "gray", size = 1) +
+  geom_point(aes(x = fct_reorder(category, avg_crashes), y = avg_crashes), color = "black", size = 3) +
+  geom_hline(yintercept = decade_average, color = "blue") +
+  labs(title = "What Are The Most Dangerous Body Types?") +
+  xlab(label = "") + ylab(label = "Average Crashes from 2010 to 2020") +
+  theme_classic() +
+  coord_flip()
+
+class_graph
+
+```
+## Nationwide Crashes Wrangling & Visualization
+
+```{r}
+df_state_crashes <- clean_csv("FatalAccidents/Crashes_State.csv")
+```
+### Read data
+
+```{r}
+clean_state_df <- df_state_crashes %>% 
+  pivot_longer(cols = 3:length(df_state_crashes)-1, names_to = "State", values_to = "crashes") %>% 
+  clean_names() %>% 
+  mutate(state = str_replace_all(state, "\\_|\\-", " ")) %>% 
+  select(year, state, crashes, total)
+```
+
+
+### Unfortunate Obstacle
+
+* The package `usmap` only plots the 50 states, disregarding _District of Columbia_
+* To plot the data, `usmap` requires to have the `state_abbr`, `state_name`, and `value` in tidy format
+
+```{r}
+library(usmap)
+no_dc <- clean_state_df %>% 
+  filter(!state == "District of Columbia") 
+```
+
+* Create a list of state abbreviations
+* Replicate down all observations
+
+```{r}
+state_names <- state.abb[which(state.name == no_dc$state)]
+state_names <- state_names[1:50]
+no_dc$state_abbr <- rep(state_names, 11)
+no_dc 
+```
+
+* Check that all 50 unique state abbreviations and state names are still present
+
+```{r}
+unique(no_dc$state)
+unique(no_dc$state_abbr)
+```
+
+* Visualize distribution of crashes for each year
+
+```{r}
+ggplot(no_dc) +
+  geom_histogram(aes(x = crashes), fill = "skyblue") +
+  facet_wrap(~year) +
+  labs(title = "Distribution of Crashes for Each Year", subtitle = "Decade of 2010 to 2020")
+```
+
+
+### Wrangle For Visualization
+
+```{r}
+wrangled_states <- no_dc %>% 
+  group_by(state, state_abbr) %>% 
+  summarise(decade_crashes = sum(crashes))
+```
+
+## (Very) Redundant Process to Make Gif of US Map and Crashes Per State
+
+* Create a subset dataset for each plot
+* I attempted to automate with `for` loops and functions but failed
+
+```{r}
+states_2010 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2010)
+
+states_2011 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2011)
+
+states_2012 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2012)
+
+states_2013 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2013)
+
+states_2014 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2014)
+
+states_2015 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2015)
+
+states_2016 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2016)
+
+states_2017 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2017)
+
+states_2018 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2018)
+
+states_2019 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2019)
+
+states_2020 <- no_dc %>% 
+  mutate(year = as.numeric(year, na.rm = T),
+         crashes = log(crashes)) %>% 
+  filter(year == 2020)
+```
+
+* Assign each plot to a variable
+
+```{r}
+p10 <- plot_usmap(data = states_2010, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2010", subtitle = "") +
+  theme(legend.position = "right")
+
+p11 <- plot_usmap(data = states_2011, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2011", subtitle = "") +
+  theme(legend.position = "right")
+
+p12 <- plot_usmap(data = states_2012, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2012", subtitle = "") +
+  theme(legend.position = "right")
+
+p13 <- plot_usmap(data = states_2013, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2013", subtitle = "") +
+  theme(legend.position = "right")
+
+p14 <- plot_usmap(data = states_2014, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2014", subtitle = "") +
+  theme(legend.position = "right")
+
+p15 <- plot_usmap(data = states_2015, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2015", subtitle = "") +
+  theme(legend.position = "right")
+
+p16 <- plot_usmap(data = states_2016, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2016", subtitle = "") +
+  theme(legend.position = "right")
+
+p17 <- plot_usmap(data = states_2017, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2017", subtitle = "") +
+  theme(legend.position = "right")
+
+p18 <- plot_usmap(data = states_2018, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2018", subtitle = "") +
+  theme(legend.position = "right")
+
+p19 <- plot_usmap(data = states_2019, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2019", subtitle = "") +
+  theme(legend.position = "right")
+
+p20 <- plot_usmap(data = states_2020, values = "crashes") + 
+  scale_fill_continuous(low = "beige", high = "forestgreen", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes for 2020", subtitle = "") +
+  theme(legend.position = "right")
+```
+
+* Create disk that will be used to save the plots
+
+```{r}
+dir_out <- file.path(tempdir(), "nation_crashes")
+dir.create(dir_out, recursive = TRUE)
+```
+
+* Then plots will be written to disk as static `.png` files using this function.
+
+```{r}
+save_gg <- function(graph) {
+  fp <- file.path(dir_out, paste0("year", ".png"))
+  
+  ggsave(plot = graph, 
+         filename = fp, 
+         device = "png")
+}
+```
+
+* With the plots written to disk, use magick to read in the image data, file will appear in working directory as png.
+* Took the 11 plots and used an onnline gif maker to create an appealing gif
+
+```{r}
+library(magick)
+save_gg(p20)
+imgs <- list.files(dir_out, full.names = TRUE)
+img_list <- lapply(imgs, image_read)
+
+## join the images together
+img_joined <- image_join(img_list)
+
+## animate at 2 frames per second
+img_animated <- image_animate(img_joined, fps = 2)
+
+## view animated image
+img_animated
+
+## save to disk
+image_write(image = img_animated,
+            path = "nation_crashes.png")
+```
+
+## Interactive US Map Plot With Total Crashes from 2010 to 2020
+
+```{r}
+library(usmap)
+library(plotly)
+g <- plot_usmap(data = wrangled_states, values = "decade_crashes") + 
+  scale_fill_continuous(low = "skyblue", high = "darkblue", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Fatal Crashes from 2010 to 2020", subtitle = "Aggregated data from 2010 to 2020") +
+  theme(legend.position = "right")
+
+g
+```
+
+
+## Florida County Wrangling & Visualization
+
+```{r}
+df_fl_counties <- clean_csv("FatalAccidents/Florida_county_crashes.csv")
+```
+
+## Tidy data
+
+* Notice that the dataset we queried from NHTSA decided to keep _Florida_ before each name of counties
+* Let's separate to keep the state name (in case we need it) and county names!
+
+```{r}
+tidy_fl_counties <- df_fl_counties %>% 
+  pivot_longer(cols = 3:length(df_fl_counties)-1, names_to = "County", values_to = "Crashes") %>% 
+  mutate(Year = as.numeric(Year, na.rm = T)) %>%
+  mutate(County = str_remove_all(County, pattern = "Florida\\_|\\_|-")) %>% 
+  select(Year, County, Crashes, Total) %>% 
+  clean_names()
+
+tidy_fl_counties
+```
+
+
+```{r}
+county_decade <- tidy_fl_counties %>% 
+  group_by(county) %>% 
+  summarise(decade_crashes = sum(crashes)) 
+
+county_decade$state_abbr <- rep("FL")
+county_decade$state <- rep("Florida")
+```
+
+## Florida County Map
+
+```{r}
+county_decade$county[50] <- "Palm Beach"
+source("county_fips.R")
+```
+
+
+```{r}
+county_decade$fips <- fips_code
+```
+
+```{r}
+county_decade
+```
+
+
+```{r}
+plot_usmap("counties", include = c(.south_atlantic), exclude = c("13","45","37","51","54","10", "24", "11"),
+           data = county_decade, values = "decade_crashes") +
+  scale_fill_continuous(low = "skyblue", high = "darkblue", name = "Total Crashes", label = scales::comma) + 
+  labs(title = "Which County has the Most Dangerous Drivers?", subtitle = "Aggregated data from 2010 to 2020") +
+  theme(legend.position = "right")
+```
+
+> Why isn't Miami-Dade County being shown?
+
+## Car Body-Class Wrangling & Visualization
+
+```{r}
+df_body_class <- clean_csv("FatalAccidents/Crash_Body_Class_2010-2020.csv")
+```
+
+### Tidy data
+
+```{r}
+tidy_body_class <- df_body_class %>% 
+  pivot_longer(cols = 3:length(df_body_class)-1, names_to = "Body_Class", values_to = "Fatal_Crashes") %>% 
+  mutate(Body_Class = str_replace_all(Body_Class, "\\_|\\-", " ")) %>% 
+  select(Year, Body_Class, Fatal_Crashes, Total) %>% 
+  clean_names() 
+```
+
+### Summary Statistics
+
+```{r}
+options(scipen = 999)
+avg_crashes <- tidy_body_class %>% 
+  mutate(
+    fatal_crashes = as.numeric(fatal_crashes)
+  ) %>% 
+  group_by(body_class) %>% 
+  summarise(decade_avg = mean(fatal_crashes))
+```
+
+* Find the average amount of fatal crashes each year
+
+```{r}
+mean(avg_crashes$decade_avg)
+```
+
+### Plot Cleaning
+
+* The following summaries creates a wrangle of the `tidy_body_class` to combine the minimal counts of crashes to an `other` category
+* This gives a much cleaner look to the graph
+
+```{r}
+thresh_freq <- 1020.403
+small_class <- tidy_body_class %>%
+  group_by(body_class) %>%
+  summarise(avg_crashes = mean(fatal_crashes), 
+            category = ifelse(avg_crashes > thresh_freq, body_class, "Other")) %>%
+  group_by(category) %>%
+  summarise(avg_crashes = mean(avg_crashes))
+```
+
+
+### Lollipop Plot
+
+* I have really enjoyed creating these plots, they look good and are compelling
+
+```{r}
+decade_average <- 1020.403
+class_graph <-  ggplot(data = small_class) +
+  geom_segment(aes(x = fct_reorder(category, avg_crashes), xend = fct_reorder(category, avg_crashes) ,y = 0, yend = avg_crashes), color = "gray", size = 1) +
+  geom_col(aes(x = fct_reorder(category, avg_crashes), y = avg_crashes), fill = "lightblue") +
+  geom_hline(yintercept = decade_average, color = "blue") +
+  labs(title = "What Are The Most Dangerous Body Types?") +
+  xlab(label = "") + ylab(label = "Average Crashes from 2010 to 2020") +
+  theme_classic() +
+  coord_flip()
+
+class_graph
+```
+
+
+## Conclusions
+
+* This project was a sole attempt to show what I have learned this semester
+* Given the time we have spent, reading, cleaning, wrangling and visualizing data in class; I have taken a noticeable step forward in the world of data analysis
+* There is a grand diversity of plots, column, histogram, 
