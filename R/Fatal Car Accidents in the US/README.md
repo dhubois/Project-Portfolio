@@ -8,9 +8,17 @@ the file paths to read the datasets do not have to be changed.
 Every year, NHTSA comes out with a summary fatal car crashes in the United States. 
 My interest with this project was to analyze the data from 2010 to 2020 to determine if a better understanding of the factors that contribute to these accidents can be learned.
 
-_Datasets_
+_Datasets Used_
 
 Available **here** in the [`datasets`](https://github.com/dhubois/Data-Portfolio/tree/main/R/Fatal%20Car%20Accidents%20in%20the%20US/datasets) folder.
+
+* `Atmospheric_Conditions_2010-2020.csv`
+* `Crash_Body_Class_2010-2020.csv`
+* `Crash_per_Month_2010-2020.csv`
+* `Crashes_State.csv`
+* `First_Harmful_Event_2010-2020.csv`
+* `Florida_county_crashes.csv`
+* `Vehicle_Make_2010-2020.csv`
 
 ### Steps Taken in this Analysis
 
