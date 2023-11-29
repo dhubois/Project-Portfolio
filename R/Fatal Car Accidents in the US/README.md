@@ -23,7 +23,7 @@ Available **here** in the [`datasets`](https://github.com/dhubois/Data-Portfolio
 ### Steps Taken in this Analysis
 
 1. Data Gathering from NHTSA's web-based Query
-2. Build a Column Name Cleaning Function
+2. Build a Custom Column Name Cleaning Function using Regular Expressions
 3. Cleaned Data
 4. Data Wrangling to have Tidy Data
 5. Data Visualization using Diverse Plots
