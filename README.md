@@ -5,17 +5,6 @@ However, I have added here many notebooks of projects I've worked on throughout 
 Harvad CS109x course. Also, the practice notebooks are just helpful notebooks to help get reaccustomed to certain packages or helpful
 programming practices!
 
----
-
-<p align="center"> 
-<img src="https://recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/000/004/942/original/fb-optimized.jpg?1612253712" width="300">
-</p>
-
-
-Visit my [DataCamp](https://www.datacamp.com/profile/palexanderdubois) profile for more details about myself!
-
----
-
 <h3 align="left">Languages, packages and tools used throughout:</h3><br>
 <a href="https://lubridate.tidyverse.org/" target="_blank" rel="noreferrer"> <img src="https://lubridate.tidyverse.org/logo.png" alt="lubridate" width="40" height="40"/> </a> 
 <a href="https://www.mysql.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/mysql/mysql-original-wordmark.svg" alt="mysql" width="40" height="40"/> </a>
